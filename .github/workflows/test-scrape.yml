@@ -1,0 +1,40 @@
+name: Test Daraz Price Scraper
+
+# এটা GitHub-এর "Actions" ট্যাব থেকে Manually Run করা যাবে
+on:
+  workflow_dispatch:
+    inputs:
+      product_url:
+        description: "Daraz Product Page URL"
+        required: true
+        default: "https://www.daraz.com.bd/products/xxxx.html"
+
+jobs:
+  test-scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run price scraper test
+        run: node scripts/test-price-scraper.js "${{ inputs.product_url }}"
+
+      - name: Upload debug screenshot (if any)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshot
+          path: debug-screenshot.png
+          if-no-files-found: ignore

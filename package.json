@@ -1,0 +1,12 @@
+{
+  "name": "price-scraper-test",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Test script to check whether Daraz product price scraping works via Playwright + GitHub Actions",
+  "scripts": {
+    "test-scrape": "node scripts/test-price-scraper.js"
+  },
+  "dependencies": {
+    "playwright": "^1.45.0"
+  }
+}
