@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daraz Price Extractor — Test Tool</title>
+<style>
+  :root { --gold:#FF9F0A; --orange:#FF6B00; --bg:#121212; --panel:#1c1c1e; --border:#2d2d30; --text:#f5f3ef; --muted:#9CA3AF; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center; padding: 1.5rem; }
+  .card { background: var(--panel); border:1px solid var(--border); border-radius:16px; padding:2rem; max-width:480px; width:100%; }
+  h1 { font-size:1.3rem; margin:0 0 .3rem; }
+  p.sub { color: var(--muted); font-size:.88rem; margin:0 0 1.3rem; }
+  input { width:100%; padding:.75rem .9rem; border-radius:8px; border:1px solid var(--border); background:#0f0f10; color:var(--text); font-size:.95rem; margin-bottom:.8rem; }
+  button { width:100%; padding:.8rem; border:none; border-radius:8px; background:linear-gradient(135deg,var(--gold),var(--orange)); color:#1a1103; font-weight:700; font-size:.95rem; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:not-allowed; }
+  #result { margin-top:1.3rem; padding:1rem; border-radius:10px; background:#0f0f10; border:1px solid var(--border); display:none; font-size:.9rem; line-height:1.7; }
+  #result.show { display:block; }
+  .price { font-size:1.6rem; font-weight:800; color: var(--gold); }
+  .error { color:#EF4444; }
+  .muted { color: var(--muted); font-size:.82rem; }
+  img.debug { max-width:100%; border-radius:8px; margin-top:.6rem; border:1px solid var(--border); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔍 Daraz Price Extractor</h1>
+    <p class="sub">একটা Daraz Product Link Paste করুন — Price বের করে দেখাবে (শুধু Testing-এর জন্য)</p>
+    <input type="text" id="urlInput" placeholder="https://www.daraz.com.bd/products/...">
+    <button id="extractBtn">Price বের করুন</button>
+    <div id="result"></div>
+  </div>
+
+<script>
+const btn = document.getElementById("extractBtn");
+const input = document.getElementById("urlInput");
+const resultBox = document.getElementById("result");
+
+btn.addEventListener("click", async () => {
+  const url = input.value.trim();
+  if (!url) return;
+
+  btn.disabled = true;
+  btn.textContent = "Extracting... (কয়েক সেকেন্ড লাগতে পারে)";
+  resultBox.className = "";
+  resultBox.innerHTML = "";
+
+  try {
+    const res = await fetch("/api/extract-price", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      resultBox.innerHTML = `
+        <div class="price">৳${data.price.toLocaleString("en-BD")}</div>
+        <div class="muted">Product: ${data.productName || "—"}</div>
+        <div class="muted">Method: ${data.method}</div>
+        <div class="muted">Raw Text: ${data.rawPrice}</div>
+      `;
+    } else {
+      resultBox.innerHTML = `
+        <div class="error">❌ ${data.error}</div>
+        ${data.screenshotBase64 ? `<img class="debug" src="data:image/png;base64,${data.screenshotBase64}">` : ""}
+      `;
+    }
+    resultBox.classList.add("show");
+  } catch (err) {
+    resultBox.innerHTML = `<div class="error">❌ Server Error: ${err.message}</div>`;
+    resultBox.classList.add("show");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Price বের করুন";
+  }
+});
+
+input.addEventListener("keydown", (e) => { if (e.key === "Enter") btn.click(); });
+</script>
+</body>
+</html>
