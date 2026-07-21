@@ -14,6 +14,12 @@ async function extractPrice(url) {
   try {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
 
+    // Daraz-এর Short/Share Link (s.daraz.com.bd) হলে JS দিয়ে Redirect হয় —
+    // তাই Network পুরোপুরি থামা পর্যন্ত অপেক্ষা করি
+    await page
+      .waitForLoadState("networkidle", { timeout: 20000 })
+      .catch(() => {});
+
     try {
       const closeBtn = page.locator('[class*="close"], [aria-label="close"]').first();
       if (await closeBtn.isVisible({ timeout: 3000 })) await closeBtn.click();
@@ -28,6 +34,8 @@ async function extractPrice(url) {
       .catch(() => null);
 
     const result = await page.evaluate(() => {
+      if (!document.body) return null;
+
       const selectors = [
         ".pdp-price",
         ".pdp-price_type_normal",
@@ -57,6 +65,7 @@ async function extractPrice(url) {
       const screenshot = await page.screenshot({ fullPage: true });
       return {
         success: false,
+        finalUrl: page.url(),
         error: "Price খুঁজে পাওয়া যায়নি — Page Structure বদলে গেছে বা সঠিকভাবে Load হয়নি।",
         screenshotBase64: screenshot.toString("base64")
       };
@@ -64,13 +73,14 @@ async function extractPrice(url) {
 
     return {
       success: true,
+      finalUrl: page.url(),
       productName: (productName || "").trim() || null,
       method: result.method,
       rawPrice: result.raw,
       price: Number(result.raw.replace(/[^\d]/g, ""))
     };
   } catch (err) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, finalUrl: page.url() };
   } finally {
     await browser.close();
   }
